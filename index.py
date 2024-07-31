@@ -10,10 +10,17 @@ def quit_action(icon, item):
     icon.stop()
 
 
+def on_open_btn_click(icon, item):
+
+    print("Open")
+
+
 
 def main():
+
     # Create menu for the system tray icon
     menu = Menu(
+        MenuItem('Open', on_open_btn_click),
         MenuItem('Quit', quit_action)
     )
 
@@ -33,7 +40,7 @@ def main():
     
     nu = NoUpdates(tasks_to_end)
 
-    nu.start()
+    nu.start_console()
 
 
 
