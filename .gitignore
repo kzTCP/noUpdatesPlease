@@ -2,3 +2,6 @@
 *.png
 imgs/
 __pycache__/
+
+MYUI.py
+data

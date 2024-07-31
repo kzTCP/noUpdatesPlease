@@ -5,12 +5,15 @@ import os
 from threading import Thread
 import pandas as pd
 from tkinter import *
+from PIL import ImageTk, Image
+
+from MYFileManager import MYFileManager
 
 
 class NoUpdates:
 
 
-    def __init__(self, tasks_to_end: list) -> None:
+    def __init__(self, ) -> None:
         
         # get the all network adapter's MAC addresses
         self.all_macs = {iface.mac for iface in ifaces.values()}
@@ -23,14 +26,27 @@ class NoUpdates:
         # global boolean for status of the program
         self.is_program_running = True
 
-        self.debug = True
+        self.debug = False
+
+        self.icon_image =  None
+
+
 
         #3376 windows update
         # SearchUI.exe == cortana + windows search bar
-        self.list_task_to_end = tasks_to_end 
+        
+        self.mfm = MYFileManager()
 
+        if  not self.mfm.read():
+            self.mfm.append( "updater.exe")
+            self.mfm.append( "BackgroundDownload.exe")
+        
+        self.list_task_to_end: list = self.mfm.read() 
         self.window = None
         self.text_box = None
+
+        self.list_killed_tasks = None
+
 
 
     def get_size(self, bytes):
@@ -262,7 +278,48 @@ class NoUpdates:
 
 
     def _on_kill_btn_press(self, ):
-        pass
+
+        if self.list_killed_tasks: 
+            self.list_killed_tasks.destroy()
+            self.list_killed_tasks = None
+        if self.kill_entry.get():
+            self.mfm.append(self.kill_entry.get())
+            self.kill_entry.delete(0, END)
+
+
+    def _on_remove_btn_press(self, ):
+
+        if self.list_killed_tasks: 
+            self.list_killed_tasks.destroy()
+            self.list_killed_tasks = None
+        if self.kill_entry.get():
+            self.mfm.remove(self.kill_entry.get())
+            self.kill_entry.delete(0, END)
+
+
+    def _on_list_killed_tasks_exit(self, ):
+        self.list_killed_tasks.destroy()
+        self.list_killed_tasks = None
+
+
+    def _on_show_list_btn_press(self, ):
+
+        if not self.list_killed_tasks:
+
+            self.list_killed_tasks = Tk()
+            self.list_killed_tasks.geometry('800x400')
+            self.list_killed_tasks.title("List Tasks To Kill")
+
+            # self.list_killed_tasks.iconphoto(True,  self.icon_image)
+
+            text_box = Text(   self.list_killed_tasks)
+            text_box.pack(fill=BOTH, side=TOP, expand=True)
+
+            for task in self.mfm.read():
+                text_box.insert("1.0", task + "\n")
+            
+            self.list_killed_tasks.protocol("WM_DELETE_WINDOW", self._on_list_killed_tasks_exit)
+            self.list_killed_tasks.mainloop()
 
 
     def _start_app_base(self):
@@ -270,8 +327,11 @@ class NoUpdates:
         if self.is_program_running:
 
             self.window = Tk()
-            self.window.title = "No Updates By KZCODE_"
+            self.window.geometry('800x400')
+            self.window.title("NO UPDATES")
 
+            self.icon_image = ImageTk.PhotoImage(Image.open(os.getcwd() + r"/imgs/refresh.png"))
+            self.window.iconphoto(True, self.icon_image)
 
             self.frame = Frame(self.window)
 
@@ -284,8 +344,13 @@ class NoUpdates:
             self.btn_kill = Button(self.frame, text="Kill", command=self._on_kill_btn_press)
             self.btn_kill.pack(fill=BOTH, side=LEFT, expand=True, padx=10)
 
-            self.frame.pack(fill=BOTH, side=TOP, expand=True, pady=10)
+            self.btn_remove = Button(self.frame, text="remove", command=self._on_remove_btn_press)
+            self.btn_remove.pack(fill=BOTH, side=LEFT, expand=True, padx=10)
 
+            self.btn_show_list = Button(self.frame, text="list", command=self._on_show_list_btn_press)
+            self.btn_show_list.pack(fill=BOTH, side=LEFT, expand=True, padx=10)
+
+            self.frame.pack(fill=BOTH, side=TOP, expand=True, pady=10)
 
             self.text_box = Text()
             self.text_box.pack(fill=BOTH, side=TOP, expand=True)
@@ -316,7 +381,9 @@ class NoUpdates:
         self.is_program_running = False   
 
 
-    def start_console(self,):
+    def start_console(self,  tasks_to_kill):
+
+        self.list_task_to_end = tasks_to_kill
 
         # start the printing thread
         printing_thread = Thread(target=self._console_loop_print)
@@ -328,7 +395,7 @@ class NoUpdates:
 
         # start sniffing
         if self.debug: print("Started sniffing")
-        sniff(prn=self.process_packet, store=False)
+        sniff(prn=self.process_packet, store=False, stop_filter=self._sniff_stop_filter)
         # setting the global variable to False to exit the program
         self.is_program_running = False   
 
@@ -340,9 +407,9 @@ if __name__ == "__main__":
         "updater.exe", "BackgroundDownload.exe"
     ]
 
-    nu = NoUpdates(tasks_to_end)
+    nu = NoUpdates()
 
-    # nu.start_console()
+    # nu.start_console(tasks_to_end)
     nu.start_app()
 
     
