@@ -6,44 +6,44 @@ from pystray import Icon, MenuItem, Menu
 from PIL import Image
 
 
-def quit_action(icon, item):
-    icon.stop()
+class App:
+
+    def __init__(self) -> None:
+
+        self.nu = NoUpdates()
+         # Create menu for the system tray icon
+        menu = Menu(
+            MenuItem('Open', self._on_open_btn_click),
+            MenuItem('Quit', self._quit_action)
+        )
+
+        # Create the icon
+        img = Image.open(r'imgs/refresh.png')
+        img = img.resize((64, 64)) 
+
+        self.icon = Icon('test', img, menu=menu)
+
+        # Run the icon
+        self.icon.run()
 
 
-def on_open_btn_click(icon, item):
+        
+    def _quit_action(self, icon, item):
+        self.icon.stop()
 
-    print("Open")
-
-
-
-def main():
-
-    # Create menu for the system tray icon
-    menu = Menu(
-        MenuItem('Open', on_open_btn_click),
-        MenuItem('Quit', quit_action)
-    )
-
-    # Create the icon
-    img = Image.open(r'imgs/refresh.png')
-    img = img.resize((64, 64)) 
-
-    icon = Icon('test', img, menu=menu)
-
-    # Run the icon
-    icon.run()
+        if self.nu.is_app_open():
+            self.nu.quit_app()
+            self.nu
 
 
-    tasks_to_end = [
-        "updater.exe", "BackgroundDownload.exe"
-    ]
+
+
+    def _on_open_btn_click(self, icon, item):
+
+        if not self.nu.is_app_open():
+            self.nu.start_app()
     
-    nu = NoUpdates(tasks_to_end)
-
-    nu.start_console()
-
-
 
 if __name__ == "__main__":
 
-    main()
+    a = App()

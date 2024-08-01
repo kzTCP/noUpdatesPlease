@@ -10,7 +10,7 @@ from PIL import ImageTk, Image
 from MYFileManager import MYFileManager
 
 
-class NoUpdates:
+class NoUpdates(Tk):
 
 
     def __init__(self, ) -> None:
@@ -30,6 +30,8 @@ class NoUpdates:
 
         self.icon_image =  None
 
+        self.sleep_in_sc = 0.5
+
 
 
         #3376 windows update
@@ -47,6 +49,9 @@ class NoUpdates:
 
         self.list_killed_tasks = None
 
+        self.app_thread = None
+        self.printing_thread = None
+        self.connections_thread = None
 
 
     def get_size(self, bytes):
@@ -60,7 +65,7 @@ class NoUpdates:
             bytes /= 1024
 
 
-    def process_packet(self, packet):
+    def _process_packet(self, packet):
 
         if self.is_program_running:
 
@@ -84,9 +89,8 @@ class NoUpdates:
                         self.pid2traffic[packet_pid][1] += len(packet)
 
         else:
-            
             if self.debug: print("process_packet")
-            exit()
+            # exit() # force closing incase of an error
 
 
     def get_connections(self, ):
@@ -108,7 +112,7 @@ class NoUpdates:
                     self.connection2pid[(c.raddr.port, c.laddr.port)] = c.pid
                     
             # sleep for a second, feel free to adjust this
-            time.sleep(1)
+            time.sleep(self.sleep_in_sc)
 
 
     def kill_task(self, name):
@@ -229,11 +233,10 @@ class NoUpdates:
 
         except KeyError as e:
             # when data_frame is empty again
-            pass
             if  self.debug: print("pass 2")
 
 
-        # update the global df to our dataframe
+        # update the global df to our data_frame
         self.global_data_frame = data_frame
 
         return printing_data_frame
@@ -256,7 +259,7 @@ class NoUpdates:
         """Simple function that keeps printing the stats"""
         # while is_program_running:
         while  self.is_program_running:
-            time.sleep(1)
+            time.sleep(self.sleep_in_sc)
             self._console_print()
 
 
@@ -265,16 +268,33 @@ class NoUpdates:
         while  self.is_program_running:
 
             if self.text_box:
-                time.sleep(1)
-                self.text_box.delete("1.0", END)
-                self.text_box.insert("1.0", self.get_printable_data().to_string())
+                time.sleep(self.sleep_in_sc)
+                if self.is_program_running:
+                    self.text_box.delete("1.0", END)
+                    self.text_box.insert("1.0", self.get_printable_data().to_string())
 
 
-    def _on_app_exit(self, ):
+    def quit_app(self, ):
 
-        self.is_program_running = False   
-        self.window.destroy()
-        self.window = None
+        self.is_program_running = False  
+        if self.window:
+            self.window.destroy()
+            self.window = None
+
+        self.app_thread = None
+        self.printing_thread = None
+        self.connections_thread = None
+
+
+
+    def is_app_open(self): return self.window and self.is_program_running 
+
+
+    def reset(self,):
+
+        self.global_data_frame = None
+        self.connection2pid = {}
+        self.pid2traffic = defaultdict(lambda: [0, 0])
 
 
     def _on_kill_btn_press(self, ):
@@ -282,9 +302,11 @@ class NoUpdates:
         if self.list_killed_tasks: 
             self.list_killed_tasks.destroy()
             self.list_killed_tasks = None
+
         if self.kill_entry.get():
             self.mfm.append(self.kill_entry.get())
             self.kill_entry.delete(0, END)
+            self.reset()
 
 
     def _on_remove_btn_press(self, ):
@@ -292,9 +314,11 @@ class NoUpdates:
         if self.list_killed_tasks: 
             self.list_killed_tasks.destroy()
             self.list_killed_tasks = None
+
         if self.kill_entry.get():
             self.mfm.remove(self.kill_entry.get())
             self.kill_entry.delete(0, END)
+            self.reset()
 
 
     def _on_list_killed_tasks_exit(self, ):
@@ -355,7 +379,7 @@ class NoUpdates:
             self.text_box = Text()
             self.text_box.pack(fill=BOTH, side=TOP, expand=True)
             
-            self.window.protocol("WM_DELETE_WINDOW", self._on_app_exit)
+            self.window.protocol("WM_DELETE_WINDOW", self.quit_app)
             self.window.mainloop()
 
 
@@ -365,18 +389,20 @@ class NoUpdates:
 
     def start_app(self, ):
 
-        app_thread = Thread(target=self._start_app_base)
-        app_thread.start()
+        self.is_program_running = True
 
-        printing_thread = Thread(target=self._app_loop_print)
-        printing_thread.start()
+        self.app_thread = Thread(target=self._start_app_base)
+        self.app_thread.start()
+       
+        self.printing_thread = Thread(target=self._app_loop_print)
+        self.printing_thread.start()
 
-        connections_thread = Thread(target=self.get_connections)
-        connections_thread.start()
+        self.connections_thread = Thread(target=self.get_connections)
+        self.connections_thread.start()
 
         # start sniffing
         if self.debug: print("Started sniffing")
-        sniff(prn=self.process_packet, store=False,  stop_filter=self._sniff_stop_filter)
+        sniff(prn=self._process_packet, store=False,  stop_filter=self._sniff_stop_filter)
         # setting the global variable to False to exit the program
         self.is_program_running = False   
 
@@ -395,7 +421,7 @@ class NoUpdates:
 
         # start sniffing
         if self.debug: print("Started sniffing")
-        sniff(prn=self.process_packet, store=False, stop_filter=self._sniff_stop_filter)
+        sniff(prn=self._process_packet, store=False, stop_filter=self._sniff_stop_filter)
         # setting the global variable to False to exit the program
         self.is_program_running = False   
 
