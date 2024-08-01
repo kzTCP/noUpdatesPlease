@@ -1,7 +1,7 @@
-"# noUpdatesPlease" 
+# how to install
 
-pip install scapy
+1- `pip install scapy`
  
-pip install psutil
+2- `pip install psutil`
 
- pip install pandas
+3- `pip install pandas`
