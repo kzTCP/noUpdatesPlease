@@ -30,7 +30,7 @@ class NoUpdates:
 
         self.icon_image =  None
 
-        self.sleep_in_sc = 0.5
+        self.sleep_in_sc = 1
 
 
 
@@ -123,12 +123,16 @@ class NoUpdates:
             Lots of other options are possible, just type taskkill /? for all of them. 
             The "/t" option kills a process and any child processes; 
             that may be useful to you.
+
+           
+
             """
 
             task_exists =  self.list_task_to_end.index(name) != -1
 
             if task_exists:
-                os.system(f"taskkill /f /im  {name}")
+                # os.system(f"taskkill /f /im  {name}")
+                os.system(f"""wmic process where "name='{name}'" delete""")
                 print(f'task  {name} was killed')
 
         except Exception as e:
