@@ -10,7 +10,7 @@ from PIL import ImageTk, Image
 from MYFileManager import MYFileManager
 
 
-class NoUpdates(Tk):
+class NoUpdates:
 
 
     def __init__(self, ) -> None:
@@ -49,11 +49,7 @@ class NoUpdates(Tk):
 
         self.list_killed_tasks = None
 
-        self.app_thread = None
-        self.printing_thread = None
-        self.connections_thread = None
-
-
+ 
     def get_size(self, bytes):
 
         """
@@ -242,27 +238,6 @@ class NoUpdates(Tk):
         return printing_data_frame
 
 
-    def _console_print(self):
-
-        printing_data_frame = self.get_printable_data()
-
-        # clear the screen based on your OS
-        os.system("cls") if "nt" in os.name else os.system("clear")
-
-        # print our data_frame
-        print("dataFrame:")
-        print(printing_data_frame.to_string())
-
-
-    def _console_loop_print(self, ):
-
-        """Simple function that keeps printing the stats"""
-        # while is_program_running:
-        while  self.is_program_running:
-            time.sleep(self.sleep_in_sc)
-            self._console_print()
-
-
     def _app_loop_print(self, ):
 
         while  self.is_program_running:
@@ -277,15 +252,15 @@ class NoUpdates(Tk):
     def quit_app(self, ):
 
         self.is_program_running = False  
+
+        if self.list_killed_tasks:
+            self.list_killed_tasks.destroy()
+            self.list_killed_tasks = None
+
         if self.window:
             self.window.destroy()
             self.window = None
-
-        self.app_thread = None
-        self.printing_thread = None
-        self.connections_thread = None
-
-
+        
 
     def is_app_open(self): return self.window and self.is_program_running 
 
@@ -406,24 +381,6 @@ class NoUpdates(Tk):
         # setting the global variable to False to exit the program
         self.is_program_running = False   
 
-
-    def start_console(self,  tasks_to_kill):
-
-        self.list_task_to_end = tasks_to_kill
-
-        # start the printing thread
-        printing_thread = Thread(target=self._console_loop_print)
-        printing_thread.start()
-
-        # start the get_connections() function to update the current connections of this machine
-        connections_thread = Thread(target=self.get_connections)
-        connections_thread.start()
-
-        # start sniffing
-        if self.debug: print("Started sniffing")
-        sniff(prn=self._process_packet, store=False, stop_filter=self._sniff_stop_filter)
-        # setting the global variable to False to exit the program
-        self.is_program_running = False   
 
 
 
