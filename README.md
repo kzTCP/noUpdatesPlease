@@ -9,3 +9,5 @@
 4- `pip install pandas`
 
 5- `pip install pillow`
+
+6- `run NoUpdates.py`
